@@ -10,8 +10,13 @@ using UnityEngine.UI;
 
 class User
 {
+    public User()
+    {
+        active = false;
+        username = "NoName";
+    }
     public Socket socket;
-    public string username = "Null";
+    public string username = "NoName";
     public bool active = false;
 }
 
@@ -20,8 +25,6 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
     Socket tcpSocket;
 
     IPEndPoint ipep;
-
-    //Socket client;
   
     bool exit = false;
 
@@ -39,6 +42,11 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
     void Start()
     {
         users = new User[maxUsers];
+
+        for(int i =0;i<maxUsers;i++) //This feels dumb
+        {
+            users[i] = new User();
+        }
 
         tcpSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
@@ -62,30 +70,40 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
         while(!exit)
         {
             Socket client = tcpSocket.Accept(); //Block until it finds a sending socket
-
+            Debug.Log("Accepted TCP connection");
             try
             {
+                
                 //Generate new user (Gather username when received)
-                int userIndex;
-                for (userIndex = 0; userIndex < users.Length; userIndex++)
+                int userIndex = 0;
+                for (; userIndex < users.Length; userIndex++)
                 {
+
                     if (!users[userIndex].active)
                     {
-                        users[userIndex].active = true;
                         users[userIndex].socket = client;
+                        users[userIndex].active = true;
+
                         break;
                     }
                 }
 
                 //gather name
                 byte[] buffer = new byte[128];
-                users[userIndex].socket.Receive(buffer);
-                users[userIndex].username = ASCIIEncoding.ASCII.GetString(buffer);
+                int size = users[userIndex].socket.Receive(buffer);
+                
+                string bufferText = ASCIIEncoding.ASCII.GetString(buffer);
+
+                users[userIndex].username = bufferText.Substring(0,size);
 
                 Debug.Log(string.Concat("New user connected: ", users[userIndex].username));
 
-                // start receive thread
-                receiveThread = new Thread(() => Receive(users[userIndex]));
+                string a = string.Concat(users[userIndex].username, " just joined the chat!");
+                Debug.Log(a);
+                SendMessageAllClients(a); //Notify all users of new connected user
+
+                // start communication thread
+                receiveThread = new Thread(() => Receive(ref users[userIndex]));
                 receiveThread.Start();
             }
             catch
@@ -95,34 +113,50 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
             
 
         }
-
     }
 
-    void ConnectNewUser()
+    void Receive(ref User user) //Constant communication thread with User
     {
 
-    }
-
-    void Receive(User user)
-    {
-
-        while(!exit)
+        while(!exit && user.active)
         {
             byte[] buffer = new byte[256];
-            user.socket.Receive(buffer);
+            int size = user.socket.Receive(buffer);
 
-            string msg = (ASCIIEncoding.ASCII.GetString(buffer));
-            Debug.Log(string.Concat("Server receive: ", msg));
-            SendMessageAllClients(msg);
+            string bufferText = ASCIIEncoding.ASCII.GetString(buffer);
+            string msg = bufferText.Substring(0, size);
+
+            if (msg.StartsWith("/")) //Determine if message is /command or regular message
+            {
+                HandleCommand(msg,ref user);
+            }
+            else
+            {
+                Debug.Log(string.Concat("Server receive: ", msg));
+                SendMessageAllClients(msg);
+            }
+
 
         }
 
         Debug.Log("Shutting down server");
     }
 
-    public void SubmitMessage()
+    void HandleCommand(string _message,ref User user)
     {
-        if(inputField.text.Length>0)
+        switch(_message)
+        {
+            case "/disconnect":
+
+                SendMessageAllClients(string.Concat("User: ", user.username, " Disconnected"));
+                user.active = false;
+                break;
+        }
+    }
+
+    public void SubmitMessage() //Called then text box submits
+    {
+        if(inputField.text.Length > 0)
         {
             SendMessageAllClients(inputField.text);
             inputField.text = "";
@@ -130,9 +164,11 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
         
     }
 
-    void SendMessageAllClients(string message)
+    void SendMessageAllClients(string _message) //Send message to all connected clients
     {
-        textManager.Say(message);
+        textManager.Say(_message);
+
+        Debug.Log(string.Concat("Sending: ", _message, " to all clients"));
         
         for (int i = 0; i < users.Length; i++)
         {
@@ -140,7 +176,7 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
             {
                 try
                 {
-                    users[i].socket.Send(ASCIIEncoding.ASCII.GetBytes(message));
+                    users[i].socket.Send(ASCIIEncoding.ASCII.GetBytes(_message));
                 }
                 catch
                 {
