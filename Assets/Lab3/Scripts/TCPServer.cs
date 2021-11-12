@@ -15,12 +15,12 @@ public class ServerUser
         active = false;
         username = "NoName";
     }
-    public Socket socket;
+
+    public int index;
     public string username = "NoName";
     public Color color;
     public bool active = false;
 }
-
 
 
 public class TCPServer : MonoBehaviour //TCP server for exercice 2
@@ -40,15 +40,20 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
     public int maxUsers = 10;
 
     ServerUser[] users;
+    Socket[] sockets;
+
+    ArrayList receiveList = new ArrayList();
 
     // Start is called before the first frame update
     void Start()
     {
+        sockets = new Socket[maxUsers];
         users = new ServerUser[maxUsers];
 
         for(int i =0;i<maxUsers;i++) //This feels dumb
         {
             users[i] = new ServerUser();
+            users[i].index = i;
         }
 
         tcpSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -60,6 +65,10 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
 
         Thread accept = new Thread(Accept);
         accept.Start();
+
+        // start communication thread
+        receiveThread = new Thread(Receive);
+        receiveThread.Start();
     }
 
     // Update is called once per frame
@@ -84,18 +93,16 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
 
                     if (!users[userIndex].active)
                     {
-                        users[userIndex].socket = client;
-                        users[userIndex].active = true;
+                        sockets[userIndex] = client;
+                        
 
                         break;
                     }
                 }
 
-                HandleNewUser(users[userIndex]);
+                HandleNewUser(ref users[userIndex]);
 
-                // start communication thread
-                receiveThread = new Thread(() => Receive(ref users[userIndex]));
-                receiveThread.Start();
+                
             }
             catch
             {
@@ -106,11 +113,11 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
         }
     }
 
-    void HandleNewUser(ServerUser _user)
+    void HandleNewUser(ref ServerUser _user)
     {
         //gather name
         byte[] buffer = new byte[256];
-        int size = _user.socket.Receive(buffer);
+        int size = sockets[_user.index].Receive(buffer);
 
         string bufferText = ASCIIEncoding.ASCII.GetString(buffer);
 
@@ -118,6 +125,7 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
 
         _user.username = jsonUser.username;
         _user.color = jsonUser.color;
+        _user.active = true; //Set user to active to start receiving messages
 
         Debug.Log(string.Concat("New user connected: ", _user.username));
 
@@ -129,37 +137,54 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
         SendMessageAllClients(serverMessage); //Notify all users of new connected user
     }
 
-    void Receive(ref ServerUser user) //Constant communication thread with User
+    void Receive() //Constant communication thread with User
     {
 
-        while(!exit && user.active)
+        while(!exit)
         {
-            Debug.Log("Hola?");
-            byte[] buffer = new byte[256];
-            int size = user.socket.Receive(buffer);
-
-            string bufferText = ASCIIEncoding.ASCII.GetString(buffer);
-            Message msg = JsonUtility.FromJson<Message>(bufferText);
-
-            if (msg.message.StartsWith("/")) //Determine if message is /command or regular message
+            int i;
+            for (i =0;i<sockets.Length;i++)
             {
-                HandleCommand(msg.message,ref user);
-            }
-            else
-            {
-                Debug.Log(string.Concat("Server receive: ", msg));
+                if(users[i].active)
+                {
+                    receiveList.Add(sockets[i]);
+                }
                 
-                SendMessageAllClients(msg);
-                Debug.Log(string.Concat("Finished sending message: ", msg, " to all users"));
+            }
+            
+            if(receiveList.Count>0)
+            {
+                Socket.Select(receiveList, null, null, 1000);
+
+                for (i = 0; i < receiveList.Count; i++)
+                {
+                    byte[] buffer = new byte[256];
+                    ((Socket)receiveList[i]).Receive(buffer);
+
+                    string bufferText = ASCIIEncoding.ASCII.GetString(buffer);
+                    Message msg = JsonUtility.FromJson<Message>(bufferText);
+
+                    if (msg.message.StartsWith("/")) //Determine if message is /command or regular message
+                    {
+                        HandleCommand(msg.message, msg.username);
+                    }
+                    else
+                    {
+                        Debug.Log(string.Concat("Server receive: ", msg));
+
+                        SendMessageAllClients(msg);
+                        Debug.Log(string.Concat("Finished sending message: ", msg, " to all users"));
+                    }
+                }
             }
 
-
+            receiveList.Clear();
         }
 
         Debug.Log("Shutting down server");
     }
 
-    void HandleCommand(string _message,ref ServerUser user)
+    void HandleCommand(string _message,string username)
     {
         switch(_message)
         {
@@ -198,7 +223,7 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
             {
                 try
                 {
-                    users[i].socket.Send(ASCIIEncoding.ASCII.GetBytes(jsonMessage));
+                    sockets[i].Send(ASCIIEncoding.ASCII.GetBytes(jsonMessage));
                 }
                 catch
                 {

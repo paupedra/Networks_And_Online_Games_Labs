@@ -31,7 +31,6 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
     bool exit = false;
 
     Thread sendThread;
-    Thread disconnectThread;
     Thread receiveThread;
     Thread notifyConnection;
 
@@ -43,6 +42,8 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
     public Button exitButton;
 
     public Text clientText;
+
+    bool logged = false;
 
     User user = new User();
 
@@ -98,25 +99,27 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
 
     public void SubmitText() //When input box is triggered send message to server
     {
-        if (inputField.text.Length > 0)
+        if (logged)
         {
-            Debug.Log(inputField.text);
+            if (inputField.text.Length > 0)
+            {
+                Debug.Log(inputField.text);
 
-            Message tmp = new Message();
-            tmp.message = inputField.text;
-            tmp.color = user.color;
-            tmp.username = user.username;
+                Message tmp = new Message();
+                tmp.message = inputField.text;
+                tmp.color = user.color;
+                tmp.username = user.username;
 
-            sendThread = new Thread(() => SendThread(tmp));
-            sendThread.Start();
+                sendThread = new Thread(() => SendThread(tmp));
+                sendThread.Start();
 
-            inputField.text = "";
+                inputField.text = "";
+            }
         }
     }
 
     void SendThread(Message _message) //Send current message to server
     {
-
         string jsonMessage = JsonUtility.ToJson(_message);
 
         tcpSocket.Send(ASCIIEncoding.ASCII.GetBytes(jsonMessage));
@@ -139,9 +142,12 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
 
     public void OnExit() //Notify Server of client's disconnection
     {
-        //disconnectThread = new Thread(() => SendThread("/disconnect"));
-        //disconnectThread.Start();
-        exit = true;
+        if(logged)
+        {
+            //disconnectThread = new Thread(() => SendThread("/disconnect"));
+            //disconnectThread.Start();
+            exit = true;
+        }
     }
 
     void OnDestroy()
@@ -149,6 +155,5 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
         exit = true;
         sendThread.Abort();
         receiveThread.Abort();
-        
     }
 }
