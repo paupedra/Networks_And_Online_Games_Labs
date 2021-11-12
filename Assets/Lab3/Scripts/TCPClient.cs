@@ -25,12 +25,11 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
     public TextManager textManager;
 
     public InputField inputField;
+    public InputField usernameInput;
 
     public Button exitButton;
 
-    public string username = "MyUser 1";
-
-    string message = "";
+    User user;
 
     // Start is called before the first frame update
     void Start()
@@ -39,16 +38,23 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
 
         serverIp = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 6969);
 
-        Thread connect = new Thread(Connect);
-        connect.Start();
-
         exitButton.onClick.AddListener(OnExit);
+
+        user.username = "DefaultName";
     }
 
     // Update is called once per frame
     void Update()
     {
         
+    }
+
+    public void SubmitConnect() //When user submits its name connect to server
+    {
+        user.username = usernameInput.text;
+
+        Thread connect = new Thread(Connect);
+        connect.Start();
     }
 
     void Connect()
@@ -65,14 +71,16 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
 
     void NotifyConnection() //Sends user name to server
     {
-        tcpSocket.Send(ASCIIEncoding.ASCII.GetBytes(username));
+        tcpSocket.Send(ASCIIEncoding.ASCII.GetBytes(user.username));
     }
 
     public void SubmitText() //When input box is triggered send message to server
     {
         if (inputField.text.Length > 0)
         {
-            sendThread = new Thread(() => SendThread(inputField.text));
+            Debug.Log(inputField.text);
+            string buffer = inputField.text;
+            sendThread = new Thread(() => SendThread(buffer));
             sendThread.Start();
 
             inputField.text = "";
@@ -82,7 +90,7 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
     void SendThread(string _message) //Send current message to server
     {
         tcpSocket.Send(ASCIIEncoding.ASCII.GetBytes(_message));
-        Debug.Log(string.Concat("Client ", username, " sent: ", _message));
+        Debug.Log(string.Concat("Client ", user.username, " sent: ", _message));
     }
 
     void ReceiveMessagesThread() //Constant thread tyhat receives all messages froms erver and adds it to its chat box
@@ -91,7 +99,9 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
         {
             byte[] buffer = new byte[256];
             tcpSocket.Receive(buffer); //Awaits and receives message
-            textManager.Say(string.Concat(DateTime.Now.ToString()," ", ASCIIEncoding.ASCII.GetString(buffer)));
+            string msg = string.Concat(DateTime.Now.ToString(), " ", ASCIIEncoding.ASCII.GetString(buffer));
+            textManager.Say(msg);
+            Debug.Log(msg);
 
         }
     }

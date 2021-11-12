@@ -120,6 +120,7 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
 
         while(!exit && user.active)
         {
+            Debug.Log("Hola?");
             byte[] buffer = new byte[256];
             int size = user.socket.Receive(buffer);
 
@@ -133,7 +134,9 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
             else
             {
                 Debug.Log(string.Concat("Server receive: ", msg));
+                msg = string.Concat(user.username, ": ", msg);
                 SendMessageAllClients(msg);
+                Debug.Log(string.Concat("Finished sending message: ", msg, " to all users"));
             }
 
 
