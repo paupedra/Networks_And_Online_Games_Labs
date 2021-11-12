@@ -7,6 +7,19 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Text;
 using UnityEngine.UI;
+using UnityEngine.Networking;
+using System.IO;
+
+public class User
+{
+    public User()
+    {
+        username = "NoName";
+    }
+
+    public string username = "NoName";
+    public Color color;
+}
 
 public class TCPClient : MonoBehaviour //TCP client for exercice 2
 {
@@ -29,7 +42,9 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
 
     public Button exitButton;
 
-    User user;
+    public Text clientText;
+
+    User user = new User();
 
     // Start is called before the first frame update
     void Start()
@@ -41,12 +56,18 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
         exitButton.onClick.AddListener(OnExit);
 
         user.username = "DefaultName";
+        user.color.r = UnityEngine.Random.Range(0f, 1f);
+        user.color.g = UnityEngine.Random.Range(0f, 1f);
+        user.color.b = UnityEngine.Random.Range(0f, 1f);
+        user.color.a = 1;
+
+        clientText.color = user.color;
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+
     }
 
     public void SubmitConnect() //When user submits its name connect to server
@@ -71,7 +92,8 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
 
     void NotifyConnection() //Sends user name to server
     {
-        tcpSocket.Send(ASCIIEncoding.ASCII.GetBytes(user.username));
+        string serializedUser = JsonUtility.ToJson(user);
+        tcpSocket.Send(Encoding.ASCII.GetBytes(serializedUser));
     }
 
     public void SubmitText() //When input box is triggered send message to server
@@ -79,17 +101,25 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
         if (inputField.text.Length > 0)
         {
             Debug.Log(inputField.text);
-            string buffer = inputField.text;
-            sendThread = new Thread(() => SendThread(buffer));
+
+            Message tmp = new Message();
+            tmp.message = inputField.text;
+            tmp.color = user.color;
+            tmp.username = user.username;
+
+            sendThread = new Thread(() => SendThread(tmp));
             sendThread.Start();
 
             inputField.text = "";
         }
     }
 
-    void SendThread(string _message) //Send current message to server
+    void SendThread(Message _message) //Send current message to server
     {
-        tcpSocket.Send(ASCIIEncoding.ASCII.GetBytes(_message));
+
+        string jsonMessage = JsonUtility.ToJson(_message);
+
+        tcpSocket.Send(ASCIIEncoding.ASCII.GetBytes(jsonMessage));
         Debug.Log(string.Concat("Client ", user.username, " sent: ", _message));
     }
 
@@ -99,26 +129,26 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
         {
             byte[] buffer = new byte[256];
             tcpSocket.Receive(buffer); //Awaits and receives message
-            string msg = string.Concat(DateTime.Now.ToString(), " ", ASCIIEncoding.ASCII.GetString(buffer));
-            textManager.Say(msg);
-            Debug.Log(msg);
 
+            //deserialize from json
+            Message msg = JsonUtility.FromJson<Message>(Encoding.ASCII.GetString(buffer));
+
+            textManager.Say(msg);
         }
     }
 
     public void OnExit() //Notify Server of client's disconnection
     {
-        disconnectThread = new Thread(() => SendThread("/disconnect"));
-        disconnectThread.Start();
+        //disconnectThread = new Thread(() => SendThread("/disconnect"));
+        //disconnectThread.Start();
         exit = true;
     }
-
-
 
     void OnDestroy()
     {
         exit = true;
         sendThread.Abort();
         receiveThread.Abort();
+        
     }
 }

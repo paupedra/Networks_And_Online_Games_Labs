@@ -968,6 +968,7 @@ MonoBehaviour:
   inputField: {fileID: 36573966}
   usernameInput: {fileID: 1782691567}
   exitButton: {fileID: 1559732515}
+  clientText: {fileID: 562122850}
 --- !u!224 &1360349856
 RectTransform:
   m_ObjectHideFlags: 0

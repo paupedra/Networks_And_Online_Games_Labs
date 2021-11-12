@@ -3,6 +3,20 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
+struct TextMessage
+{
+    public string message;
+    public Color color;
+}
+
+public class Message
+{
+    public string message;
+    public string username;
+    public Color color;
+    public bool server = false; //If message is coming from server
+}
+
 public class TextManager : MonoBehaviour
 {
 
@@ -19,12 +33,12 @@ public class TextManager : MonoBehaviour
 
     InputField inputField;
 
-    Stack<string> toSay;
+    Stack<TextMessage> toSay;
 
     // Start is called before the first frame update
     void Start()
     {
-        toSay = new Stack<string>();
+        toSay = new Stack<TextMessage>();
 
         texts = new Text[textAmount];
         
@@ -53,21 +67,29 @@ public class TextManager : MonoBehaviour
             for (int i = 0; i < texts.Length -1; i++)
             {
                 texts[i].text = texts[i + 1].text;
+                texts[i].color = texts[i + 1].color;
             }
-            
-            texts[texts.Length - 1].text = toSay.Pop();
+            TextMessage tmp = toSay.Pop();
+
+            texts[texts.Length - 1].text = tmp.message;
+            texts[texts.Length - 1].color = tmp.color;
         }
-
-
     }
 
-    public void SubmitText()
+    public void Say(Message _message)
     {
+        TextMessage tmp;
+        if (_message.server)
+        {
+            tmp.message = _message.message;
+            tmp.color = Color.black;
+        }
+        else
+        {
+            tmp.message = string.Concat(_message.username, ": ", _message.message);
+            tmp.color = _message.color;
+        }
         
-    }
-
-    public void Say(string _string)
-    {
-        toSay.Push(_string);
+        toSay.Push(tmp);
     }
 }
