@@ -19,6 +19,7 @@ public class User
 
     public string username = "NoName";
     public Color color;
+    public int uid;
 }
 
 public class TCPClient : MonoBehaviour //TCP client for exercice 2
@@ -30,9 +31,9 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
 
     bool exit = false;
 
-    Thread sendThread;
     Thread receiveThread;
     Thread notifyConnection;
+    Thread disconnectThread;
 
     public TextManager textManager;
 
@@ -47,12 +48,14 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
 
     User user = new User();
 
+    Message message;
+
     // Start is called before the first frame update
     void Start()
     {
         tcpSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
-        serverIp = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 6969);
+        serverIp = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 4201);
 
         exitButton.onClick.AddListener(OnExit);
 
@@ -62,7 +65,13 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
         user.color.b = UnityEngine.Random.Range(0f, 1f);
         user.color.a = 1;
 
+        user.uid = UnityEngine.Random.Range(0, 999999);
+
         clientText.color = user.color;
+
+        receiveThread = new Thread(ReceiveMessagesThread);
+        notifyConnection = new Thread(NotifyConnection);
+        disconnectThread = new Thread(NotifyDisconnection);
     }
 
     // Update is called once per frame
@@ -74,6 +83,7 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
     public void SubmitConnect() //When user submits its name connect to server
     {
         user.username = usernameInput.text;
+        logged = true;
 
         Thread connect = new Thread(Connect);
         connect.Start();
@@ -81,13 +91,10 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
 
     void Connect()
     {
-
         tcpSocket.Connect(serverIp);
 
-        notifyConnection = new Thread(NotifyConnection);
         notifyConnection.Start();
 
-        receiveThread = new Thread(ReceiveMessagesThread);
         receiveThread.Start();
     }
 
@@ -97,33 +104,62 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
         tcpSocket.Send(Encoding.ASCII.GetBytes(serializedUser));
     }
 
+    void NotifyDisconnection()
+    {
+        try
+        {
+            message = new Message();
+            message.message = "/disconnect";
+            message.color = user.color;
+            message.username = user.username;
+            message.uid = user.uid;
+
+            string jsonMessage = JsonUtility.ToJson(message);
+
+            tcpSocket.Send(ASCIIEncoding.ASCII.GetBytes(jsonMessage));
+            Debug.Log(string.Concat("Client ", user.username, " sent: ", message));
+
+            logged = false;
+        }
+        catch
+        {
+
+        }
+    }
+
     public void SubmitText() //When input box is triggered send message to server
     {
         if (logged)
         {
             if (inputField.text.Length > 0)
             {
-                Debug.Log(inputField.text);
+                if(inputField.text.StartsWith("/"))
+                {
+                    switch (inputField.text)
+                    {
+                        case "/disconnect":
+                            NotifyDisconnection();
+                            return;
+                    }
 
-                Message tmp = new Message();
-                tmp.message = inputField.text;
-                tmp.color = user.color;
-                tmp.username = user.username;
+                    textManager.Say("This command could not be recognised");
 
-                sendThread = new Thread(() => SendThread(tmp));
-                sendThread.Start();
+                }
+
+                message = new Message();
+                message.message = inputField.text;
+                message.color = user.color;
+                message.username = user.username;
+                message.uid = user.uid;
+
+                string jsonMessage = JsonUtility.ToJson(message);
+
+                tcpSocket.Send(ASCIIEncoding.ASCII.GetBytes(jsonMessage));
+                Debug.Log(string.Concat("Client ", user.username, " sent: ", message));
 
                 inputField.text = "";
             }
         }
-    }
-
-    void SendThread(Message _message) //Send current message to server
-    {
-        string jsonMessage = JsonUtility.ToJson(_message);
-
-        tcpSocket.Send(ASCIIEncoding.ASCII.GetBytes(jsonMessage));
-        Debug.Log(string.Concat("Client ", user.username, " sent: ", _message));
     }
 
     void ReceiveMessagesThread() //Constant thread tyhat receives all messages froms erver and adds it to its chat box
@@ -152,8 +188,11 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
 
     void OnDestroy()
     {
+        
+        NotifyDisconnection();
+
         exit = true;
-        sendThread.Abort();
+        notifyConnection.Abort();
         receiveThread.Abort();
     }
 }

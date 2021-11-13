@@ -15,6 +15,7 @@ public class Message
     public string username;
     public Color color;
     public bool server = false; //If message is coming from server
+    public int uid = 0;
 }
 
 public class TextManager : MonoBehaviour
@@ -90,6 +91,14 @@ public class TextManager : MonoBehaviour
             tmp.color = _message.color;
         }
         
+        toSay.Push(tmp);
+    }
+
+    public void Say(string _message)
+    {
+        TextMessage tmp;
+        tmp.message = _message;
+        tmp.color = Color.black;
         toSay.Push(tmp);
     }
 }

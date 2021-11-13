@@ -16,12 +16,12 @@ public class ServerUser
         username = "NoName";
     }
 
-    public int index;
+    public int uid=0;
+    public int socketIndex;
     public string username = "NoName";
     public Color color;
     public bool active = false;
 }
-
 
 public class TCPServer : MonoBehaviour //TCP server for exercice 2
 {
@@ -32,6 +32,7 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
     bool exit = false;
 
     Thread receiveThread;
+    Thread acceptThread;
 
     public TextManager textManager;
 
@@ -53,18 +54,18 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
         for(int i =0;i<maxUsers;i++) //This feels dumb
         {
             users[i] = new ServerUser();
-            users[i].index = i;
+            users[i].socketIndex = i;
         }
 
         tcpSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
-        ipep = new IPEndPoint(IPAddress.Parse("127.0.0.1"),6969);
+        ipep = new IPEndPoint(IPAddress.Parse("127.0.0.1"),4201);
 
         tcpSocket.Bind(ipep);
         tcpSocket.Listen(maxUsers); //Accept 10 connections at the same time
 
-        Thread accept = new Thread(Accept);
-        accept.Start();
+        acceptThread = new Thread(Accept);
+        acceptThread.Start();
 
         // start communication thread
         receiveThread = new Thread(Receive);
@@ -117,7 +118,7 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
     {
         //gather name
         byte[] buffer = new byte[256];
-        int size = sockets[_user.index].Receive(buffer);
+        int size = sockets[_user.socketIndex].Receive(buffer);
 
         string bufferText = ASCIIEncoding.ASCII.GetString(buffer);
 
@@ -126,6 +127,7 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
         _user.username = jsonUser.username;
         _user.color = jsonUser.color;
         _user.active = true; //Set user to active to start receiving messages
+        _user.uid = jsonUser.uid;
 
         Debug.Log(string.Concat("New user connected: ", _user.username));
 
@@ -166,7 +168,7 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
 
                     if (msg.message.StartsWith("/")) //Determine if message is /command or regular message
                     {
-                        HandleCommand(msg.message, msg.username);
+                        HandleCommand(msg);
                     }
                     else
                     {
@@ -184,20 +186,37 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
         Debug.Log("Shutting down server");
     }
 
-    void HandleCommand(string _message,string username)
+    void HandleCommand(Message _message)
     {
-        switch(_message)
+        switch(_message.message)
         {
             case "/disconnect":
+                
+                //search for disconnected user
+                for(int i=0; i<maxUsers;i++)
+                {
+                    if(users[i].uid == _message.uid)
+                    {
+                        users[i].active = false;
+                        break;
+                    }
+                }
 
-                //SendMessageAllClients(string.Concat("User: ", user.username, " Disconnected"));
-                //user.active = false;
+                Message msg = new Message();
+                msg.message = string.Concat("User ", _message.username, " has left the chat!");
+                msg.server = true;
+
+                //notify users of disconnection
+
+                SendMessageAllClients(msg);
+
                 break;
         }
     }
 
     public void SubmitMessage() //Called then text box submits
     {
+        
         if(inputField.text.Length > 0)
         {
             Message serverMessage = new Message();
@@ -228,6 +247,7 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
                 catch
                 {
                     Debug.Log(string.Concat("Could not send message to active user ",users[i].username));
+                    textManager.Say(string.Concat("Could not send message to active user ", users[i].username));
                 }
                
             }
@@ -237,6 +257,8 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
     void OnDestroy()
     {
         exit = true;
+        tcpSocket.Close();
         receiveThread.Abort();
+        acceptThread.Abort();
     }
 }
