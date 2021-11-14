@@ -46,6 +46,7 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
     public Image clientState;
 
     public bool logged = false;
+    bool loggOut = false;
 
     User user = new User();
 
@@ -75,7 +76,12 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
     // Update is called once per frame
     void Update()
     {
-
+        if(loggOut)
+        {
+            loggOut = false;
+            logged = false;
+            SetConnectionDisplay();
+        }
     }
 
     public void SubmitColor()
@@ -125,8 +131,6 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
             tcpSocket.Send(ASCIIEncoding.ASCII.GetBytes(jsonMessage));
             Debug.Log(string.Concat("Client ", user.username, " sent: ", message));
 
-            logged = false;
-            SetConnectionDisplay();
         }
         catch
         {
@@ -186,13 +190,30 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
     {
         while (!exit)
         {
-            byte[] buffer = new byte[256];
-            tcpSocket.Receive(buffer); //Awaits and receives message
+            byte[] buffer = new byte[254];
+            int size = tcpSocket.Receive(buffer); //Awaits and receives message
 
-            //deserialize from json
-            Message msg = JsonUtility.FromJson<Message>(Encoding.ASCII.GetString(buffer));
+            if(size >0)
+            {
+                //deserialize from json
+                Message msg = JsonUtility.FromJson<Message>(Encoding.ASCII.GetString(buffer));
 
-            textManager.Say(msg);
+                if(msg.message.StartsWith("/"))
+                {
+                    if(msg.message == "/disconnect")
+                    {
+                        loggOut = true;
+                        tcpSocket.Disconnect(true);
+                        textManager.Say("You have been disconnected from the chat!");
+                    }
+                }
+                else
+                {
+                    textManager.Say(msg);
+                }
+                
+            }
+            
         }
     }
 

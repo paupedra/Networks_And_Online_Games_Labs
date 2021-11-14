@@ -193,13 +193,24 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
         switch (_message.message)
         {
             case "/disconnect":
-
+                Debug.Log(string.Concat("User: ", _message.username, " wants to disconnect"));
                 //search for disconnected user
                 for (int i = 0; i < maxUsers; i++)
                 {
                     if (users[i].uid == _message.uid)
                     {
                         users[i].active = false;
+
+                        Message disconnectMessage = new Message();
+                        disconnectMessage.message = "/disconnect";
+                        disconnectMessage.server = true;
+
+                        string str = JsonUtility.ToJson(disconnectMessage);
+
+                        sockets[users[i].socketIndex].Send(Encoding.ASCII.GetBytes(str)); //Send disconnection message to user
+
+                        
+
                         break;
                     }
                 }
@@ -207,6 +218,8 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
                 Message msg = new Message();
                 msg.message = string.Concat("User ", _message.username, " has left the chat!");
                 msg.server = true;
+
+                
 
                 //notify users of disconnection
 
@@ -234,7 +247,7 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
     {
         textManager.Say(_message);
 
-        Debug.Log(string.Concat("Sending: ", _message, " to all clients"));
+        Debug.Log(string.Concat("Sending: ", _message.message, " to all clients"));
 
         string jsonMessage = JsonUtility.ToJson(_message);
 
