@@ -43,6 +43,7 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
     public Button exitButton;
 
     public Text clientText;
+    public Image clientState;
 
     public bool logged = false;
 
@@ -87,6 +88,7 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
         user.username = usernameInput.text;
         clientText.text = "Client: " + user.username;
         logged = true;
+        SetConnection();
 
         Thread connect = new Thread(Connect);
         connect.Start();
@@ -105,6 +107,7 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
     {
         string serializedUser = JsonUtility.ToJson(user);
         tcpSocket.Send(Encoding.ASCII.GetBytes(serializedUser));
+        
     }
 
     void NotifyDisconnection()
@@ -128,6 +131,19 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
         {
 
         }
+    }
+
+    public void SetConnection()
+    {
+        if(logged)
+        {
+            clientState.color = Color.green;
+        }
+        else
+        {
+            clientState.color = Color.grey;
+        }
+
     }
 
     public void SubmitText() //When input box is triggered send message to server
