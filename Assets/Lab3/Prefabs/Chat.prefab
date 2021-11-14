@@ -45,8 +45,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   textAmount: 10
   textsDistance: 60
-  textPos: {x: -500, y: 300}
-  inputBoxDistance: 40
+  textPos: {x: -378.1, y: 280}
+  inputBoxDistance: 20
   textLine: {fileID: 6100551922975593403, guid: 3dca3b99bb3440f43946a0c19366473a, type: 3}
   inputBox: {fileID: 0}
   canvas: {fileID: 0}

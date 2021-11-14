@@ -48,7 +48,7 @@ public class TextManager : MonoBehaviour
         {
             GameObject a = Instantiate(textLine);
             a.transform.SetParent(canvas.transform);
-            a.GetComponent<RectTransform>().anchoredPosition =new Vector3(textPos.x,textPos.y - textsDistance*i,0);
+            a.GetComponent<RectTransform>().anchoredPosition =new Vector3(textPos.x - 50,textPos.y - textsDistance*i,0);
             texts[i] = a.GetComponent<Text>();
         }
 

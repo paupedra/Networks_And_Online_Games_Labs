@@ -88,7 +88,7 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
         user.username = usernameInput.text;
         clientText.text = "Client: " + user.username;
         logged = true;
-        SetConnection();
+        SetConnectionDisplay();
 
         Thread connect = new Thread(Connect);
         connect.Start();
@@ -110,7 +110,7 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
         
     }
 
-    void NotifyDisconnection()
+    public void NotifyDisconnection()
     {
         try
         {
@@ -126,6 +126,7 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
             Debug.Log(string.Concat("Client ", user.username, " sent: ", message));
 
             logged = false;
+            SetConnectionDisplay();
         }
         catch
         {
@@ -133,7 +134,7 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
         }
     }
 
-    public void SetConnection()
+    public void SetConnectionDisplay()
     {
         if(logged)
         {
@@ -247,12 +248,10 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
             case 8:
                 return Color.green;
             case 9:
-                return Color.black;
-            case 10:
                 return Color.white;
 
             default:
-                return Color.black;
+                return Color.white;
         }
     }
 }
