@@ -39,7 +39,7 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
 
     public InputField inputField;
     public InputField usernameInput;
-    public Dropdown color_dropdown;
+    public Dropdown colorDropdown;
     public Button exitButton;
 
     public Text clientText;
@@ -80,7 +80,7 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
 
     public void SubmitColor()
     {
-        user.color = ValueToColor(color_dropdown.value);
+        user.color = ValueToColor(colorDropdown.value);
         clientText.color = user.color;
     }
     public void SubmitConnect() //When user submits its name connect to server
@@ -218,12 +218,12 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
 
     public Color NewRandomColor()
     {
-        Color new_color;
-        new_color.r = UnityEngine.Random.Range(0f, 1f);
-        new_color.g = UnityEngine.Random.Range(0f, 1f);
-        new_color.b = UnityEngine.Random.Range(0f, 1f);
-        new_color.a = 1;
-        return new_color;
+        Color newColor;
+        newColor.r = UnityEngine.Random.Range(0f, 1f);
+        newColor.g = UnityEngine.Random.Range(0f, 1f);
+        newColor.b = UnityEngine.Random.Range(0f, 1f);
+        newColor.a = 1;
+        return newColor;
     }
     public Color ValueToColor(int new_color)
     {

@@ -16,7 +16,7 @@ public class ServerUser
         username = "NoName";
     }
 
-    public int uid=0;
+    public int uid = 0;
     public int socketIndex;
     public string username = "NoName";
     public Color color;
@@ -28,7 +28,7 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
     Socket tcpSocket;
 
     IPEndPoint ipep;
-  
+
     bool exit = false;
 
     Thread receiveThread;
@@ -45,13 +45,15 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
 
     ArrayList receiveList = new ArrayList();
 
+    public Text userList;
+
     // Start is called before the first frame update
     void Start()
     {
         sockets = new Socket[maxUsers];
         users = new ServerUser[maxUsers];
 
-        for(int i =0;i<maxUsers;i++) //This feels dumb
+        for (int i = 0; i < maxUsers; i++) //This feels dumb
         {
             users[i] = new ServerUser();
             users[i].socketIndex = i;
@@ -59,7 +61,7 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
 
         tcpSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
-        ipep = new IPEndPoint(IPAddress.Parse("127.0.0.1"),4201);
+        ipep = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 4201);
 
         tcpSocket.Bind(ipep);
         tcpSocket.Listen(maxUsers); //Accept 10 connections at the same time
@@ -75,18 +77,18 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
     // Update is called once per frame
     void Update()
     {
-        
+        UpdateUserList();
     }
 
     void Accept()
     {
-        while(!exit)
+        while (!exit)
         {
             Socket client = tcpSocket.Accept(); //Block until it finds a sending socket
             Debug.Log("Accepted TCP connection");
             try
             {
-                
+
                 //Generate new user (Gather username when received)
                 int userIndex = 0;
                 for (; userIndex < users.Length; userIndex++)
@@ -95,7 +97,7 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
                     if (!users[userIndex].active)
                     {
                         sockets[userIndex] = client;
-                        
+
 
                         break;
                     }
@@ -103,13 +105,13 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
 
                 HandleNewUser(ref users[userIndex]);
 
-                
+
             }
             catch
             {
                 Debug.Log("Could not connect with new client");
             }
-            
+
 
         }
     }
@@ -142,19 +144,19 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
     void Receive() //Constant communication thread with User
     {
 
-        while(!exit)
+        while (!exit)
         {
             int i;
-            for (i =0;i<sockets.Length;i++)
+            for (i = 0; i < sockets.Length; i++)
             {
-                if(users[i].active)
+                if (users[i].active)
                 {
                     receiveList.Add(sockets[i]);
                 }
-                
+
             }
-            
-            if(receiveList.Count>0)
+
+            if (receiveList.Count > 0)
             {
                 Socket.Select(receiveList, null, null, 1000);
 
@@ -188,14 +190,14 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
 
     void HandleCommand(Message _message)
     {
-        switch(_message.message)
+        switch (_message.message)
         {
             case "/disconnect":
-                
+
                 //search for disconnected user
-                for(int i=0; i<maxUsers;i++)
+                for (int i = 0; i < maxUsers; i++)
                 {
-                    if(users[i].uid == _message.uid)
+                    if (users[i].uid == _message.uid)
                     {
                         users[i].active = false;
                         break;
@@ -216,16 +218,16 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
 
     public void SubmitMessage() //Called then text box submits
     {
-        
-        if(inputField.text.Length > 0)
+
+        if (inputField.text.Length > 0)
         {
             Message serverMessage = new Message();
-            serverMessage.color = Color.white;
+            serverMessage.color = Color.black;
             serverMessage.message = inputField.text;
             SendMessageAllClients(serverMessage);
             inputField.text = "";
         }
-        
+
     }
 
     void SendMessageAllClients(Message _message) //Send message to all connected clients
@@ -246,14 +248,25 @@ public class TCPServer : MonoBehaviour //TCP server for exercice 2
                 }
                 catch
                 {
-                    Debug.Log(string.Concat("Could not send message to active user ",users[i].username));
+                    Debug.Log(string.Concat("Could not send message to active user ", users[i].username));
                     textManager.Say(string.Concat("Could not send message to active user ", users[i].username));
                 }
-               
+
             }
         }
     }
 
+    void UpdateUserList()
+    {
+        userList.text = "";
+        foreach (var user in users)
+        {
+            if (user.active)
+            {
+                userList.text += user.username + "\n";
+            }
+        }
+    }
     void OnDestroy()
     {
         exit = true;
