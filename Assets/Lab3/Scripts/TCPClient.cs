@@ -39,12 +39,12 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
 
     public InputField inputField;
     public InputField usernameInput;
-
+    public Dropdown color_dropdown;
     public Button exitButton;
 
     public Text clientText;
 
-    bool logged = false;
+    public bool logged = false;
 
     User user = new User();
 
@@ -60,10 +60,7 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
         exitButton.onClick.AddListener(OnExit);
 
         user.username = "DefaultName";
-        user.color.r = UnityEngine.Random.Range(0f, 1f);
-        user.color.g = UnityEngine.Random.Range(0f, 1f);
-        user.color.b = UnityEngine.Random.Range(0f, 1f);
-        user.color.a = 1;
+        user.color = NewRandomColor();
 
         user.uid = UnityEngine.Random.Range(0, 999999);
 
@@ -80,9 +77,15 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
 
     }
 
+    public void SubmitColor()
+    {
+        user.color = ValueToColor(color_dropdown.value);
+        clientText.color = user.color;
+    }
     public void SubmitConnect() //When user submits its name connect to server
     {
         user.username = usernameInput.text;
+        clientText.text = "Client: " + user.username;
         logged = true;
 
         Thread connect = new Thread(Connect);
@@ -133,7 +136,7 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
         {
             if (inputField.text.Length > 0)
             {
-                if(inputField.text.StartsWith("/"))
+                if (inputField.text.StartsWith("/"))
                 {
                     switch (inputField.text)
                     {
@@ -178,7 +181,7 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
 
     public void OnExit() //Notify Server of client's disconnection
     {
-        if(logged)
+        if (logged)
         {
             //disconnectThread = new Thread(() => SendThread("/disconnect"));
             //disconnectThread.Start();
@@ -188,11 +191,52 @@ public class TCPClient : MonoBehaviour //TCP client for exercice 2
 
     void OnDestroy()
     {
-        
+
         NotifyDisconnection();
 
         exit = true;
         notifyConnection.Abort();
         receiveThread.Abort();
+    }
+
+    public Color NewRandomColor()
+    {
+        Color new_color;
+        new_color.r = UnityEngine.Random.Range(0f, 1f);
+        new_color.g = UnityEngine.Random.Range(0f, 1f);
+        new_color.b = UnityEngine.Random.Range(0f, 1f);
+        new_color.a = 1;
+        return new_color;
+    }
+    public Color ValueToColor(int new_color)
+    {
+        switch (new_color)
+        {
+            case 0:
+                return NewRandomColor();
+            case 1:
+                return Color.yellow;
+            case 2:
+                return new Color(1.0f, 0.29f, 0.0f, 1); //Orange
+            case 3:
+                return Color.red;
+            case 4:
+                return new Color(1.0f, 0.0f, 0.57f, 1); //Pink
+            case 5:
+                return new Color(0.47f, 0.18f, 0.73f, 1); //Purple
+            case 6:
+                return new Color(0.0f, 0.36f, 1.0f, 1); //Blue
+            case 7:
+                return Color.cyan;
+            case 8:
+                return Color.green;
+            case 9:
+                return Color.black;
+            case 10:
+                return Color.white;
+
+            default:
+                return Color.black;
+        }
     }
 }

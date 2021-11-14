@@ -43,10 +43,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e16946cdbb2b74c4f9a542fd8afd2225, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  textAmount: 15
-  textsDistance: 20
-  textPos: {x: -50, y: 150}
-  inputBoxDistance: 20
+  textAmount: 10
+  textsDistance: 60
+  textPos: {x: -500, y: 300}
+  inputBoxDistance: 40
   textLine: {fileID: 6100551922975593403, guid: 3dca3b99bb3440f43946a0c19366473a, type: 3}
-  inputBox: {fileID: 3400481998536483653, guid: f6d15d3bb3851d24e894d803675e445f, type: 3}
+  inputBox: {fileID: 0}
   canvas: {fileID: 0}
